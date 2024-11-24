@@ -1,0 +1,9 @@
+{:paths ["src"]
+ :deps
+ {missionary/missionary                 {:mvn/version "b.42"}
+  com.cognitect/transit-cljs            {:mvn/version "0.8.280"}}
+ :aliases
+ {:cljs
+  {:extra-deps {org.clojure/clojurescript   {:mvn/version "1.11.132"}}}
+  :dev
+  {:extra-paths ["test"]}}}
