@@ -64,6 +64,7 @@
         method (name (or request-method :get))
         headers (util/build-headers headers)
         xhr (build-xhr request)
+        *finished? (atom false)
         get-response-task
         (m/reduce
          (fn [_ v] (when-not (identical? sentinel v) (reduced v))) sentinel
@@ -83,24 +84,30 @@
                           (when-not (aborted? xhr) (emit! response)))))
              (.send xhr request-url method body headers)
              (fn dtor []
-               (when-not (.isComplete xhr) (.abort xhr)))))))]
+               (when-not (.isComplete xhr) (.abort xhr))
+               (reset! *finished? true))))))]
     (when *progress-flow
       (reset! *progress-flow
-              (m/buffer
-               3
-               (m/relieve
-                (m/observe
-                 (fn ctor [emit!]
-                   (let [listener
-                         (fn [direction evt]
-                           (let [e (merge {:direction direction :loaded (.-loaded evt)}
-                                          (when (.-lengthComputable evt) {:total (.-total evt)}))]
-                             (emit! e)))]
-                     (doto xhr
-                       (.setProgressEventsEnabled true)
-                       (.listen EventType.UPLOAD_PROGRESS (partial listener :upload))
-                       (.listen EventType.DOWNLOAD_PROGRESS (partial listener :download))))
-                   (fn [])))))))
+              (m/stream
+               (m/eduction
+                (take-while #(not (identical? sentinel %)))
+                (m/relieve
+                 {}
+                 (m/observe
+                  (fn ctor [emit!]
+                    (let [listener
+                          (fn [direction evt]
+                            (let [e (merge {:direction direction :loaded (.-loaded evt)}
+                                           (when (.-lengthComputable evt) {:total (.-total evt)}))]
+                              (emit! e)))]
+                      (add-watch *finished? :end-flow
+                                 (fn [_k _r _o n]
+                                   (when (true? n) (emit! sentinel))))
+                      (doto xhr
+                        (.setProgressEventsEnabled true)
+                        (.listen EventType.UPLOAD_PROGRESS (partial listener :upload))
+                        (.listen EventType.DOWNLOAD_PROGRESS (partial listener :download))))
+                    (fn []))))))))
     get-response-task))
 
 (defn jsonp
