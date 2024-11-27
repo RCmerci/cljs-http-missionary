@@ -57,7 +57,7 @@
 
 (defn xhr
   "Execute the HTTP request corresponding to the given Ring request
-  map and return a task.
+  map and return a missionary task.
   If *progress-flow atom provided in request, reset it by a progress-flow"
   [{:keys [request-method headers body *progress-flow] :as request}]
   (let [request-url (util/build-url request)
@@ -112,7 +112,7 @@
 
 (defn jsonp
   "Execute the JSONP request corresponding to the given Ring request
-  map and return a task."
+  map and return a missionary task."
   [{:keys [timeout callback-name keywordize-keys?]
     :or {keywordize-keys? true}
     :as request}]
@@ -135,7 +135,7 @@
 
 (defn request
   "Execute the HTTP request corresponding to the given Ring request
-  map and return a core.async channel."
+  map and return a missionary task."
   [{:keys [request-method] :as request}]
   (if (= request-method :jsonp)
     (jsonp request)
